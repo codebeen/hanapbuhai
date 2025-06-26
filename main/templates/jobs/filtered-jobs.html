@@ -1,0 +1,158 @@
+{% extends 'jobs/job-list.html' %} 
+{% block title %}Filtered Jobs{% endblock%} 
+{% load static %} 
+
+{% block job_content %}
+<style>
+  .jobs-container {
+    margin-top: 120px;
+  }
+
+  .pagination .page-link {
+    border: none;
+    background: #f1f5f9;
+    color: #333;
+    transition: all 0.2s ease;
+  }
+  
+  .pagination .page-link:hover {
+    background: #007bff;
+    color: #fff;
+  }
+  
+  .pagination .active .page-link {
+    background: #007bff;
+    color: #fff;
+    font-weight: 600;
+  }
+</style>
+
+  {% for job in jobs %}
+    <div class="row mb-4">
+      <div class="col">
+        <div class="job-card fade-in h-100 d-flex">
+          <!-- LEFT COLUMN -->
+          <div class="flex-grow-1">
+
+            <!-- Company Logo -->
+            <div class="company-logo"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        overflow: hidden;">
+              <img src="{{ job.company.logo }}" 
+                  alt="{{ job.company.name|default:'N/A' }}" 
+                  style="max-width: 100%; max-height: 100%; object-fit: contain;">
+            </div>
+
+            <h3 class="job-title">{{ job.title|default:"No Title" }}</h3>
+            <p class="company-name">{{ job.company.name|default:"Unknown Company" }}</p>
+
+            <div class="job-meta">
+              <div class="job-meta-item">
+                <i class="fas fa-map-marker-alt"></i>
+                {{ job.location|default:"Location not specified" }}
+              </div>
+
+              <div class="job-meta-item">
+                <i class="fas fa-clock"></i>
+                {% if job.types %}
+                  {% for type in job.types %}
+                    {{ type.name }}{% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                {% else %}
+                  Job Type Unknown
+                {% endif %}
+              </div>
+
+              {% if job.published %}
+                <div class="job-meta-item">
+                  <i class="fas fa-calendar-alt"></i>
+                  {{ job.published|date:"F j, Y" }}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Source Info -->
+            <div class="job-source d-flex align-items-center mb-2">
+              <p>
+                <span>Source:</span>
+              </p>
+              <p class="job-source-name ms-2">
+                JobDataAPI
+              </p>
+            </div>
+
+            <!-- No recruiter fields in this API; skip -->
+
+            <!-- Example: countries as tags -->
+            <div class="job-tags">
+              {% if job.countries %}
+                {% for c in job.countries %}
+                  <span class="job-tag">{{ c.name }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="job-tag">No Country Info</span>
+              {% endif %}
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div class="d-flex flex-column justify-content-between align-items-end h-100 ms-3" style="width: 300px; min-width: 300px;">
+            <div class="job-salary mb-2">
+              {% if job.salary_min or job.salary_max %}
+                {{ job.salary_currency|default:"" }}
+                {% if job.salary_min %}{{ job.salary_min|floatformat:0 }}{% endif %}
+                {% if job.salary_max %} - {{ job.salary_max|floatformat:0 }}{% endif %}
+              {% else %}
+                Negotiable
+              {% endif %}
+            </div>
+            <div class="apply-button">
+              <a href="{{ job.application_url }}" class="btn btn-primary" target="_blank">
+                <i class="fas fa-info-circle me-2"></i>View Details
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p class="text-center">No jobs found at the moment.</p>
+  {% endfor %}
+
+
+  <!-- Modern Pagination Controls -->
+  <nav aria-label="Job pagination">
+    <ul class="pagination justify-content-center">
+  
+      {% if prev_page %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page|add:'-1' }}">Previous</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">Previous</span>
+        </li>
+      {% endif %}
+  
+      <li class="page-item disabled">
+        <span class="page-link">Page {{ page }}</span>
+      </li>
+  
+      {% if next_page %}
+        <li class="page-item">
+          <a class="page-link" href="?page={{ page|add:'1' }}">Next</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">Next</span>
+        </li>
+      {% endif %}
+  
+    </ul>
+  </nav>
+{% endblock %}

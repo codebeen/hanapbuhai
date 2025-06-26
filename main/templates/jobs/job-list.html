@@ -1,0 +1,360 @@
+{% extends 'layouts/base-app.html' %} 
+{% block title %}List of Jobs{% endblock%} 
+{% load static %} 
+
+{% block content %}
+<style>
+  .jobs-container {
+    margin-top: 120px;
+  }
+
+  .pagination .page-link {
+    border: none;
+    background: #f1f5f9;
+    color: #333;
+    transition: all 0.2s ease;
+  }
+  
+  .pagination .page-link:hover {
+    background: #007bff;
+    color: #fff;
+  }
+  
+  .pagination .active .page-link {
+    background: #007bff;
+    color: #fff;
+    font-weight: 600;
+  }
+</style>
+
+<div class="container min-vh-100 d-flex flex-column jobs-container">
+  <h2 class="section-title fade-in">All Jobs</h2>
+  <p class="section-subtitle fade-in mb-2">
+    Browse jobs that match your skills and interests.
+  </p>
+
+  <div class="search-form fade-in shadow-sm" style="margin-bottom: 40px">
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs search-tabs" id="searchTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link active"
+          id="job-search-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#job-search"
+          type="button"
+          role="tab"
+        >
+          <i class="fas fa-search me-2"></i>Search Jobs
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link"
+          id="resume-upload-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#resume-upload"
+          type="button"
+          role="tab"
+        >
+          <i class="fas fa-file-upload me-2"></i>Upload Resume
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="searchTabContent">
+      <!-- Job Search Tab -->
+      <div class="tab-pane fade show active" id="job-search" role="tabpanel">
+        <form method="get" action="{% url 'filtered_jobs' %}" id="jobSearchForm">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <input
+                type="text"
+                class="form-control search-input"
+                placeholder="Job title or keyword"
+                id="jobKeyword"
+                name="keyword"
+                value="{{ request.GET.keyword }}"
+              />
+            </div>
+            <div class="col-md-3">
+              <input
+                type="text"
+                class="form-control search-input"
+                placeholder="Location"
+                id="jobLocation"
+                name="location"
+                value="{{ request.GET.location }}"
+              />
+            </div>
+            <div class="col-md-2">
+              <select class="form-control search-input" id="employmentType" name="employment_type">
+                <option value="">Employment Type</option>
+                <option value="full_time" {% if request.GET.employment_type == 'full_time' %}selected{% endif %}>Full Time</option>
+                <option value="part_time" {% if request.GET.employment_type == 'part_time' %}selected{% endif %}>Part Time</option>
+                <option value="contract" {% if request.GET.employment_type == 'contractor' %}selected{% endif %}>Contract</option>
+                <option value="temporary" {% if request.GET.employment_type == 'temporary' %}selected{% endif %}>Temporary</option>
+                <option value="intern" {% if request.GET.employment_type == 'intern' %}selected{% endif %}>Internship</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <button class="btn search-btn w-100" type="submit">
+                <i class="fas fa-search me-2"></i>Search
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <div class="row mt-3">
+          <div class="col-12">
+            <small class="text-muted">
+              Popular searches: Designer, Developer, Manager, Marketing, Data Scientist
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resume Upload Tab as Django Form -->
+      <div class="tab-pane fade" id="resume-upload" role="tabpanel">
+        <form method="get" enctype="multipart/form-data" action="{% url 'extract_resume_text' %}">
+          <div class="row">
+            <!--  Left column: Upload area -->
+            <div class="col-md-6">
+              <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">
+                  <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div class="upload-text">Drag & Drop your resume here</div>
+                <div class="upload-subtext">or click to browse files</div>
+                <button type="button" class="upload-btn" id="browseBtn">
+                  <i class="fas fa-folder-open me-2"></i>Browse Files
+                </button>
+
+                <!-- Make sure input has NAME -->
+                <input
+                  type="file"
+                  class="file-input"
+                  id="resumeFile"
+                  name="resume"
+                  accept=".pdf,.doc,.docx"
+                />
+
+                <div class="mt-2">
+                  <small class="text-muted">
+                    Supported formats: PDF, DOC, DOCX (Max 5MB)
+                  </small>
+                </div>
+              </div>
+
+              <div class="file-preview" id="filePreview">
+                <div class="file-info">
+                  <div class="file-details">
+                    <div class="file-icon">
+                      <i class="fas fa-file-pdf"></i>
+                    </div>
+                    <div>
+                      <div class="file-name" id="fileName">resume.pdf</div>
+                      <div class="file-size" id="fileSize">2.5 MB</div>
+                    </div>
+                  </div>
+                  <button class="remove-file" id="removeFile">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right column: Preferences -->
+            <div class="col-md-6">
+              <div class="job-preferences">
+                <div class="preference-group">
+                  <label class="preference-label">Keyword</label>
+                  <input
+                    type="text"
+                    class="preference-select"
+                    placeholder="Job title or keyword"
+                    id="keyword"
+                    name="keyword"
+                  />
+                </div>
+
+                <div class="preference-group">
+                  <label class="preference-label">Preferred Job Type</label>
+                  <select class="form-control search-input" id="jobType" name="employment_type">
+                    <option value="">Employment Type</option>
+                    <option value="full_time" {% if request.GET.employment_type == 'full_time' %}selected{% endif %}>Full Time</option>
+                    <option value="part_time" {% if request.GET.employment_type == 'part_time' %}selected{% endif %}>Part Time</option>
+                    <option value="contractor" {% if request.GET.employment_type == 'contractor' %}selected{% endif %}>Contract</option>
+                    <option value="temporary" {% if request.GET.employment_type == 'temporary' %}selected{% endif %}>Temporary</option>
+                    <option value="intern" {% if request.GET.employment_type == 'intern' %}selected{% endif %}>Internship</option>
+                  </select>
+                </div>
+
+                <div class="preference-group">
+                  <label class="preference-label">Preferred Location</label>
+                  <input
+                    type="text"
+                    class="preference-select"
+                    placeholder="City, State or Remote"
+                    id="preferredLocation"
+                    name="location"
+                  />
+                </div>
+
+                <div class="col-12 mt-3 text-center">
+                  <button class="btn search-btn" type="submit" id="findMatchingJobsBtn">
+                    <i class="fas fa-magic me-2"></i>Find Matching Jobs
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  {% for job in page_obj %}
+    <div class="row mb-4">
+      <div class="col">
+        <div class="job-card fade-in h-100 d-flex">
+          
+          <!-- LEFT COLUMN -->
+          <div class="flex-grow-1">
+
+            <!-- Company Logo -->
+            <div class="company-logo"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        overflow: hidden;">
+              <img src="{{ job.organization_logo }}" 
+                  alt="{{ job.organization|default:'N/A' }}" 
+                  style="max-width: 100%; max-height: 100%; object-fit: contain;">
+            </div>
+
+            <h3 class="job-title">{{ job.title|default:"No Title" }}</h3>
+            <p class="company-name">{{ job.organization|default:"Unknown Company" }}</p>
+
+            <div class="job-meta">
+              <div class="job-meta-item">
+                <i class="fas fa-map-marker-alt"></i>
+                {{ job.locations_derived.0|default:"Location not specified" }}
+              </div>
+
+              <div class="job-meta-item">
+                <i class="fas fa-clock"></i>
+                {% if job.employment_type %}
+                  {% for type in job.employment_type %}
+                    {{ type }}{% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                {% else %}
+                  Job Type Unknown
+                {% endif %}
+              </div>
+
+              {% if job.date_posted %}
+                <div class="job-meta-item">
+                  <i class="fas fa-calendar-alt"></i>
+                  {{ job.date_posted|date:"F j, Y" }}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Source Info -->
+            <div class="job-source d-flex align-items-center mb-2">
+              <p><span>Source:</span></p>
+              <p class="job-source-name ms-2">{{ job.source|capfirst }}</p>
+            </div>
+
+            <!-- Countries as tags -->
+            <div class="job-tags">
+              {% if job.countries_derived %}
+                {% for c in job.countries_derived %}
+                  <span class="job-tag">{{ c }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="job-tag">No Country Info</span>
+              {% endif %}
+            </div>
+
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div class="d-flex flex-column justify-content-between align-items-end h-100 ms-3" style="width: 300px; min-width: 300px;">
+            <div class="job-salary mb-2">
+            </div>
+            <div class="apply-button">
+              <a href="{{ job.url|default:job.url }}" class="btn btn-primary" target="_blank">
+                <i class="fas fa-info-circle me-2"></i>View Details
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p class="text-center">No jobs found at the moment.</p>
+  {% endfor %}
+
+  <!-- Modern Pagination Controls using page_obj -->
+  <nav aria-label="Job pagination">
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a class="page-link"
+            href="?keyword={{ request.GET.keyword|urlencode }}&location={{ request.GET.location|urlencode }}&employment_type={{ request.GET.employment_type|urlencode }}&page={{ page_obj.previous_page_number }}">
+            &laquo; Previous
+          </a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">&laquo; Previous</span>
+        </li>
+      {% endif %}
+  
+      <li class="page-item disabled">
+        <span class="page-link">
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+      </li>
+  
+      {% if page_obj.has_next %}
+        <li class="page-item">
+          <a class="page-link"
+            href="?keyword={{ request.GET.keyword|urlencode }}&location={{ request.GET.location|urlencode }}&employment_type={{ request.GET.employment_type|urlencode }}&page={{ page_obj.next_page_number }}">
+            Next &raquo;
+          </a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">Next &raquo;</span>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+</div>
+
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("jobSearchForm");
+    form.addEventListener("submit", function (event) {
+      // Get input values & trim spaces
+      const keyword = document.getElementById("jobKeyword").value.trim();
+      const location = document.getElementById("jobLocation").value.trim();
+      const employmentType = document.getElementById("employmentType").value.trim();
+      const category = document.getElementById("jobCategory").value.trim();
+
+      // If all are empty, prevent submit
+      if (!keyword || !location || !employmentType || !category) {
+        event.preventDefault();
+      }
+    });
+  });
+</script>
+{% endblock %}

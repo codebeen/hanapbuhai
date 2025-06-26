@@ -1,0 +1,33 @@
+{% load static %}
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center" href="#">
+      <img src="{% static 'images/logo-no-bg.png' %}" alt="Logo" class="me-2" style="width: 40px; height: 40px;">
+      HanapBuhAI
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav">
+        {% url 'homepage' as homepage_url %}
+        {% url 'list_jobs' as list_jobs_url %}
+        {% url 'generate_resume' as generate_resume_url %}
+
+        <li class="nav-item">
+          <a class="nav-link {% if request.path == homepage_url %}active{% endif %}" href="{{ homepage_url }}">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.path == list_jobs_url %}active{% endif %}" href="{{ list_jobs_url }}">Jobs</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.path == generate_resume_url %}active{% endif %}" href="{{ generate_resume_url }}">Resume Generator</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
