@@ -1,6 +1,5 @@
 # ADET Project
 
-## Project: 
 **System Name:** HanapBuhAI (AI-powered Job Hunting Assistant)
 
 ### Project Owner and Developer:
