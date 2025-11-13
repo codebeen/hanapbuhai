@@ -34,7 +34,7 @@
   </p>
 
   <div class="search-form fade-in shadow-sm" style="margin-bottom: 40px">
-    <!-- Tab Navigation -->
+    {% comment %} <!-- Tab Navigation -->
     <ul class="nav nav-tabs search-tabs" id="searchTabs" role="tablist">
       <li class="nav-item" role="presentation">
         <button
@@ -60,10 +60,10 @@
           <i class="fas fa-file-upload me-2"></i>Upload Resume
         </button>
       </li>
-    </ul>
+    </ul> {% endcomment %}
 
     <!-- Tab Content -->
-    <div class="tab-content" id="searchTabContent">
+    <div class="tab-content pb-4" id="searchTabContent">
       <!-- Job Search Tab -->
       <div class="tab-pane fade show active" id="job-search" role="tabpanel">
         <form method="get" action="{% url 'filtered_jobs' %}" id="jobSearchForm">
@@ -95,7 +95,7 @@
                 <option value="part_time" {% if request.GET.employment_type == 'part_time' %}selected{% endif %}>Part Time</option>
                 <option value="contract" {% if request.GET.employment_type == 'contractor' %}selected{% endif %}>Contract</option>
                 <option value="temporary" {% if request.GET.employment_type == 'temporary' %}selected{% endif %}>Temporary</option>
-                <option value="intern" {% if request.GET.employment_type == 'intern' %}selected{% endif %}>Internship</option>
+                <option value="internship" {% if request.GET.employment_type == 'intern' %}selected{% endif %}>Internship</option>
               </select>
             </div>
             <div class="col-md-2">
@@ -106,9 +106,9 @@
           </div>
         </form>
 
-        <div class="row mt-3">
+        <div class="row mt-2">
           <div class="col-12">
-            <small class="text-muted">
+            <small class="text-secondary fst-italic">
               Popular searches: Designer, Developer, Manager, Marketing, Data Scientist
             </small>
           </div>
@@ -164,55 +164,9 @@
                 </div>
               </div>
             </div>
-
-            <!-- Right column: Preferences -->
-            <div class="col-md-6">
-              <div class="job-preferences">
-                <div class="preference-group">
-                  <label class="preference-label">Keyword</label>
-                  <input
-                    type="text"
-                    class="preference-select"
-                    placeholder="Job title or keyword"
-                    id="keyword"
-                    name="keyword"
-                  />
-                </div>
-
-                <div class="preference-group">
-                  <label class="preference-label">Preferred Job Type</label>
-                  <select class="form-control search-input" id="jobType" name="employment_type">
-                    <option value="">Employment Type</option>
-                    <option value="full_time" {% if request.GET.employment_type == 'full_time' %}selected{% endif %}>Full Time</option>
-                    <option value="part_time" {% if request.GET.employment_type == 'part_time' %}selected{% endif %}>Part Time</option>
-                    <option value="contractor" {% if request.GET.employment_type == 'contractor' %}selected{% endif %}>Contract</option>
-                    <option value="temporary" {% if request.GET.employment_type == 'temporary' %}selected{% endif %}>Temporary</option>
-                    <option value="intern" {% if request.GET.employment_type == 'intern' %}selected{% endif %}>Internship</option>
-                  </select>
-                </div>
-
-                <div class="preference-group">
-                  <label class="preference-label">Preferred Location</label>
-                  <input
-                    type="text"
-                    class="preference-select"
-                    placeholder="City, State or Remote"
-                    id="preferredLocation"
-                    name="location"
-                  />
-                </div>
-
-                <div class="col-12 mt-3 text-center">
-                  <button class="btn search-btn" type="submit" id="findMatchingJobsBtn">
-                    <i class="fas fa-magic me-2"></i>Find Matching Jobs
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </form>
       </div>
-
     </div>
   </div>
 
@@ -231,26 +185,24 @@
                         align-items: center;
                         justify-content: center;
                         overflow: hidden;">
-              <img src="{{ job.organization_logo }}" 
-                  alt="{{ job.organization|default:'N/A' }}" 
+              <img src="{{ job.company_object.logo }}" 
+                  alt="{{ job.company_object.name|default:'N/A' }}" 
                   style="max-width: 100%; max-height: 100%; object-fit: contain;">
             </div>
 
-            <h3 class="job-title">{{ job.title|default:"No Title" }}</h3>
-            <p class="company-name">{{ job.organization|default:"Unknown Company" }}</p>
+            <h3 class="job-title">{{ job.job_title|default:"No Title" }}</h3>
+            <p class="company-name">{{ job.company_object.name|default:"Unknown Company" }}</p>
 
             <div class="job-meta">
               <div class="job-meta-item">
                 <i class="fas fa-map-marker-alt"></i>
-                {{ job.locations_derived.0|default:"Location not specified" }}
+                {{ job.locations.0.display_name|default:"Location not specified" }}
               </div>
 
               <div class="job-meta-item">
                 <i class="fas fa-clock"></i>
-                {% if job.employment_type %}
-                  {% for type in job.employment_type %}
-                    {{ type }}{% if not forloop.last %}, {% endif %}
-                  {% endfor %}
+                {% if job.employment_statuses_display %}
+                    {{ job.employment_statuses_display|join:", " }}
                 {% else %}
                   Job Type Unknown
                 {% endif %}
@@ -265,22 +217,24 @@
             </div>
 
             <!-- Source Info -->
-            <div class="job-source d-flex align-items-center mb-2">
-              <p><span>Source:</span></p>
-              <p class="job-source-name ms-2">{{ job.source|capfirst }}</p>
+            <div class="job-source d-flex align-items-center mb-2 text-dark">
+                <p><span class="fw-bold">Source:</span></p>
+                <p class="job-source-name ms-2">
+                    {% if job.source_url %}
+                        {% if "linkedin.com" in job.source_url %}
+                            LinkedIn
+                        {% elif "seek.com.au" in job.source_url %}
+                            Seek
+                        {% elif "indeed.com" in job.source_url %}
+                            Indeed
+                        {% else %}
+                            External
+                        {% endif %}
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                </p>
             </div>
-
-            <!-- Countries as tags -->
-            <div class="job-tags">
-              {% if job.countries_derived %}
-                {% for c in job.countries_derived %}
-                  <span class="job-tag">{{ c }}</span>
-                {% endfor %}
-              {% else %}
-                <span class="job-tag">No Country Info</span>
-              {% endif %}
-            </div>
-
           </div>
 
           <!-- RIGHT COLUMN -->
@@ -288,7 +242,7 @@
             <div class="job-salary mb-2">
             </div>
             <div class="apply-button">
-              <a href="{{ job.url|default:job.url }}" class="btn btn-primary" target="_blank">
+              <a href="{{ job.source_url }}" class="btn btn-primary" target="_blank">
                 <i class="fas fa-info-circle me-2"></i>View Details
               </a>
             </div>

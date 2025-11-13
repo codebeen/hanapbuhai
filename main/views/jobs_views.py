@@ -4,23 +4,15 @@ import os
 import random
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
-import requests
 from django.conf import settings
 from django.core.paginator import Paginator
-import pytesseract
-from pdf2image import convert_from_bytes
-from PIL import Image
-import tempfile
-from docx import Document
+import logging
 
-# Create your views here.
-def homepage(request):
-    file_path = os.path.join(settings.BASE_DIR, 'ph-jobs.json')
-    with open(file_path, encoding='utf-8') as f:
-        jobs = json.load(f)
+logger = logging.getLogger('jobs')
 
-    print(f"Jobs loaded: {len(jobs)}")
-
+# helper for formatting of data
+def format_jobs_data(jobs):
+    # Parse date_posted
     for job in jobs:
         date_posted_str = job.get('date_posted')
         if date_posted_str:
@@ -31,7 +23,28 @@ def homepage(request):
         else:
             job['date_posted'] = None
 
-    # ✅ Pick 4 random jobs
+    # remove underscore in employment types
+    for job in jobs:
+        if 'employment_statuses' in job:
+            job['employment_statuses_display'] = [
+                status.replace('_', ' ').title() for status in job['employment_statuses']
+            ]
+
+    return jobs
+
+# ---------------------------
+# Homepage - show 4 random jobs
+# ---------------------------
+def homepage(request):
+    file_path = os.path.join(settings.BASE_DIR, 'new-jobs.json')
+    with open(file_path, encoding='utf-8') as f:
+        jobs = json.load(f)
+
+    logger.info(f"Jobs loaded: {json.dumps(jobs)}")
+
+    jobs = format_jobs_data(jobs)
+
+    # Pick 4 random jobs
     random_jobs = random.sample(jobs, k=4) if len(jobs) >= 4 else jobs
 
     return render(request, 'jobs/homepage.html', {
@@ -39,53 +52,43 @@ def homepage(request):
     })
 
 
+# ---------------------------
+# List all jobs with pagination
+# ---------------------------
 def list_jobs(request):
-    # Load jobs from the JSON file
-    file_path = os.path.join(settings.BASE_DIR, 'ph-jobs.json')
+    file_path = os.path.join(settings.BASE_DIR, 'new-jobs.json')
     with open(file_path, encoding='utf-8') as f:
         jobs = json.load(f)
 
     print(f"Jobs loaded: {len(jobs)}")
 
-    for job in jobs:
-        # Example: parse 'date_posted'
-        date_posted_str = job.get('date_posted')
-        if date_posted_str:
-            try:
-                job['date_posted'] = datetime.fromisoformat(date_posted_str)
-            except ValueError:
-                job['date_posted'] = None
-        else:
-            job['date_posted'] = None
+    jobs = format_jobs_data(jobs)
+    
+    # randomize the jobs
+    random.shuffle(jobs)
 
-    # Set up pagination — 10 jobs per page
-    paginator = Paginator(jobs, 10)  # 10 per page
-
-    # Get current page number from URL query parameter ?page=...
+    # Pagination
+    paginator = Paginator(jobs, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Pass only the current page of jobs to template
     return render(request, 'jobs/job-list.html', {
         'page_obj': page_obj,
     })
 
 
+# ---------------------------
+# Filter jobs based on keyword, location, or employment type
+# ---------------------------
 def filtered_jobs(request):
-    # Load jobs from JSON file
-    file_path = os.path.join(settings.BASE_DIR, 'ph-jobs.json')
+    file_path = os.path.join(settings.BASE_DIR, 'new-jobs.json')
     with open(file_path, encoding='utf-8') as f:
         jobs = json.load(f)
 
     print(f"Jobs loaded: {len(jobs)}")
 
-    # Parse date_posted for each job
-    for job in jobs:
-        date_posted_str = job.get('date_posted')
-        try:
-            job['date_posted'] = datetime.fromisoformat(date_posted_str) if date_posted_str else None
-        except ValueError:
-            job['date_posted'] = None
+    # Parse date_posted
+    jobs = format_jobs_data(jobs)
 
     # Get filters
     keyword = request.GET.get('keyword', '').strip().lower()
@@ -97,40 +100,36 @@ def filtered_jobs(request):
     filtered_jobs = []
 
     for job in jobs:
-        title = (job.get('title') or '').lower()
-        org = (job.get('organization') or '').lower()
-        locations = ', '.join(job.get('locations_derived') or []).lower()
-        types = [t.lower() for t in (job.get('employment_type') or [])]
+        title = (job.get('job_title') or '').lower()
+        company = (job.get('company') or '').lower()
+        # locations is a list of dicts; get names
+        locations = ', '.join([loc.get('name', '') for loc in job.get('locations', [])]).lower()
+        types = [t.lower() for t in job.get('employment_statuses', [])]
 
         # Check each filter
-        matches_keyword = keyword and (
-            keyword in title or
-            keyword in org or
-            keyword in locations
-        )
-
+        matches_keyword = keyword and (keyword in title or keyword in company or keyword in locations)
         matches_location = location and location in locations
-
         matches_type = employment_type and any(employment_type in t for t in types)
 
-        # Include job if ANY matches (not all)
+        # Include job if any filter matches
         if matches_keyword or matches_location or matches_type:
             filtered_jobs.append(job)
 
-    # If no filters, include all jobs
+    # If no filters provided, show all jobs
     if not any([keyword, location, employment_type]):
         filtered_jobs = jobs
 
     print(f"Filtered jobs: {len(filtered_jobs)}")
 
-    # Paginate — 10 per page
-    paginator = Paginator(filtered_jobs, 10)
+    # Pagination
+    paginator = Paginator(filtered_jobs, 5)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'jobs/job-list.html', {
         'page_obj': page_obj,
     })
+
 
 
 def extract_resume_text(request):

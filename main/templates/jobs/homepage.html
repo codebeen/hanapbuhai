@@ -326,67 +326,76 @@
 
     <div class="row">
       {% for job in random_jobs%}
-        <div class="col-lg-6">
-          <div class="job-card fade-in">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="flex-grow-1">
-                <div class="company-logo"
-                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            overflow: hidden;">
-                  <img src="{{ job.organization_logo }}" 
-                      alt="{{ job.organization|default:'N/A' }}" 
-                      style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                </div>
-                <h3 class="job-title">{{ job.title|default:"No Title" }}</h3>
-                <p class="company-name">{{ job.organization|default:"Unknown Company" }}</p>
-
-                <div class="job-meta">
-                  <div class="job-meta-item">
-                    <i class="fas fa-map-marker-alt"></i>
-                    {{ job.locations_derived.0|default:"Location not specified" }}
+        <div class="col-lg-6 mb-3">
+          <a href="{{ job.source_url }}" class="text-decoration-none" target="_blank">
+            <div class="job-card fade-in h-100 d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <div class="company-logo"
+                      style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                              overflow: hidden;">
+                    <img src="{{ job.company_object.logo }}" 
+                        alt="{{ job.company_object.name|default:'N/A' }}" 
+                        style="max-width: 100%; max-height: 100%; object-fit: contain;">
                   </div>
-                  <div class="job-meta-item">
-                    <i class="fas fa-clock"></i>
-                    {% if job.employment_type %}
-                      {% for type in job.employment_type %}
-                        {{ type }}{% if not forloop.last %}, {% endif %}
-                      {% endfor %}
-                    {% else %}
-                      Job Type Unknown
+                  <h3 class="job-title">{{ job.job_title|default:"No Title" }}</h3>
+                  <p class="company-name">{{ job.company_object.name|default:"Unknown Company" }}</p>
+                  <div class="job-meta mb-1">
+                    <div class="job-meta-item">
+                      <i class="fas fa-map-marker-alt"></i>
+                      {{ job.locations.0.display_name|default:"Location not specified" }}
+                    </div>
+                  </div>
+                  <div class="job-meta mb-1">      
+                    {% if job.date_posted %}
+                      <div class="job-meta-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        {{ job.date_posted|date:"F j, Y" }}
+                      </div>
                     {% endif %}
                   </div>
-    
-                  {% if job.date_posted %}
-                    <div class="job-meta-item">
-                      <i class="fas fa-calendar-alt"></i>
-                      {{ job.date_posted|date:"F j, Y" }}
+                  <div class="job-meta mb-3"> 
+                    <div class="job-meta-item">     
+                      <i class="fas fa-clock"></i>
+                      {% if job.employment_statuses_display %}
+                          {{ job.employment_statuses_display|join:", " }}
+                      {% else %}
+                        Job Type Unknown
+                      {% endif %}
                     </div>
-                  {% endif %}
-                </div>
+                  </div>
 
-                <!-- Source Info -->
-                <div class="job-source d-flex align-items-center mb-2">
-                  <p><span>Source:</span></p>
-                  <p class="job-source-name ms-2">{{ job.source|capfirst }}</p>
+                  <!-- Source Info -->
+                  <div class="job-source d-flex align-items-center mb-2 text-dark">
+                      <p><span class="fw-bold">Source:</span></p>
+                      <p class="job-source-name ms-2">
+                          {% if job.source_url %}
+                              {% if "linkedin.com" in job.source_url %}
+                                  LinkedIn
+                              {% elif "seek.com.au" in job.source_url %}
+                                  Seek
+                              {% elif "indeed.com" in job.source_url %}
+                                  Indeed
+                              {% else %}
+                                  External
+                              {% endif %}
+                          {% else %}
+                              Unknown
+                          {% endif %}
+                      </p>
+                  </div>
                 </div>
-
-                <!-- Countries as tags -->
-                <div class="job-tags">
-                  {% if job.countries_derived %}
-                    {% for c in job.countries_derived %}
-                      <span class="job-tag">{{ c }}</span>
-                    {% endfor %}
-                  {% else %}
-                    <span class="job-tag">No Country Info</span>
+                <div class="job-salary fs-7">
+                  {% if job.salary_string %}
+                    <span class="salary-amount fs-10">{{ job.salary_string|default:"Salary not specified" }}</span>
                   {% endif %}
                 </div>
               </div>
-              <div class="job-salary"></div>
             </div>
-          </div>
+          </a>
         </div>
       {% endfor%}
     </div>
@@ -402,7 +411,7 @@
 <!-- Categories Section -->
 <section class="categories-section" id="categories">
   <div class="container">
-    <h2 class="section-title fade-in">Browse by Category</h2>
+    <h2 class="section-title fade-in">Job Categories</h2>
     <p class="section-subtitle fade-in">
       Discover job opportunities in your preferred field and take the first step
       toward your future career.
@@ -415,7 +424,7 @@
             <i class="fas fa-code"></i>
           </div>
           <h4 class="category-title">Technology</h4>
-          <p class="category-count">2,500+ Jobs</p>
+          {% comment %} <p class="category-count">2,500+ Jobs</p> {% endcomment %}
         </div>
       </div>
 
@@ -425,7 +434,7 @@
             <i class="fas fa-paint-brush"></i>
           </div>
           <h4 class="category-title">Design</h4>
-          <p class="category-count">1,200+ Jobs</p>
+          {% comment %} <p class="category-count">1,200+ Jobs</p> {% endcomment %}
         </div>
       </div>
 
@@ -435,7 +444,7 @@
             <i class="fas fa-chart-line"></i>
           </div>
           <h4 class="category-title">Marketing</h4>
-          <p class="category-count">800+ Jobs</p>
+          {% comment %} <p class="category-count">800+ Jobs</p> {% endcomment %}
         </div>
       </div>
 
@@ -445,7 +454,7 @@
             <i class="fas fa-dollar-sign"></i>
           </div>
           <h4 class="category-title">Finance</h4>
-          <p class="category-count">600+ Jobs</p>
+          {% comment %} <p class="category-count">600+ Jobs</p> {% endcomment %}
         </div>
       </div>
 
@@ -455,7 +464,7 @@
             <i class="fas fa-users"></i>
           </div>
           <h4 class="category-title">Human Resources</h4>
-          <p class="category-count">400+ Jobs</p>
+          {% comment %} <p class="category-count">400+ Jobs</p> {% endcomment %}
         </div>
       </div>
 
@@ -465,7 +474,7 @@
             <i class="fas fa-handshake"></i>
           </div>
           <h4 class="category-title">Sales</h4>
-          <p class="category-count">900+ Jobs</p>
+          {% comment %} <p class="category-count">900+ Jobs</p> {% endcomment %}
         </div>
       </div>
 
@@ -475,7 +484,7 @@
             <i class="fas fa-graduation-cap"></i>
           </div>
           <h4 class="category-title">Education</h4>
-          <p class="category-count">300+ Jobs</p>
+          {% comment %} <p class="category-count">300+ Jobs</p> {% endcomment %}
         </div>
       </div>
 
@@ -485,7 +494,7 @@
             <i class="fas fa-stethoscope"></i>
           </div>
           <h4 class="category-title">Healthcare</h4>
-          <p class="category-count">700+ Jobs</p>
+          {% comment %} <p class="category-count">700+ Jobs</p> {% endcomment %}
         </div>
       </div>
     </div>
