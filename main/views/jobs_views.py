@@ -40,7 +40,7 @@ def homepage(request):
     with open(file_path, encoding='utf-8') as f:
         jobs = json.load(f)
 
-    logger.info(f"Jobs loaded: {json.dumps(jobs)}")
+    # logger.info(f"Jobs loaded: {json.dumps(jobs)}")
 
     jobs = format_jobs_data(jobs)
 
